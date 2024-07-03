@@ -17,7 +17,7 @@ See <http://godoc.org/github.com/godoes/printers> for details.
 ## 🔰 Installation
 
 ```shell
-go get -d github.com/godoes/printers
+go get -d github.com/592146505/printers
 ```
 
 📝 Usage
@@ -28,7 +28,7 @@ package main
 import (
     "log"
 
-    "github.com/godoes/printers"
+    "github.com/592146505/printers"
 )
 
 func main() {
@@ -55,7 +55,7 @@ func main() {
 
 ---
 
-Forked from [alexbrainman/printer](https://github.com/alexbrainman/printer).
+Forked from [godoes/printers](https://github.com/godoes/printers).
 
 ## 📃 LICENSE
 
