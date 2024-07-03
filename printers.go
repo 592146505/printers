@@ -61,6 +61,32 @@ type FORM_INFO_1 struct {
 	ImageableArea Rect
 }
 
+//goland:noinspection GoSnakeCaseUsage,SpellCheckingInspection
+type FORM_INFO_2 struct {
+	/*
+	  DWORD   Flags;
+	  LPTSTR  pName;
+	  SIZEL   Size;
+	  RECTL   ImageableArea;
+	  LPCSTR  pKeyword;
+	  DWORD   StringType;
+	  LPCTSTR pMuiDll;
+	  DWORD   dwResourceId;
+	  LPCTSTR pDisplayName;
+	  LANGID  wLangId;
+	*/
+	Flags         uint32
+	pName         *uint16
+	Size          SIZE
+	ImageableArea Rect
+	pKeyword      *uint16
+	StringType    uint32
+	pMuiDll       *uint16
+	dwResourceId  uint32
+	pDisplayName  *uint16
+	wLangId       uint16
+}
+
 // SIZE windows.Coord
 type SIZE struct {
 	Width  uint32 // 宽度，以千毫米为单位
@@ -380,6 +406,22 @@ type FormInfo struct {
 	ImageableArea Rect
 }
 
+// FormInfo2 stores information about a print form.
+//
+//goland:noinspection SpellCheckingInspection
+type FormInfo2 struct {
+	Flags         uint32
+	Name          string
+	Size          SIZE
+	ImageableArea Rect
+	PKeyword      string
+	StringType    uint32
+	PMuiDll       string
+	DwResourceId  uint32
+	PDisplayName  string
+	WLangId       uint16
+}
+
 // Forms returns information about all paper size forms on the print server
 func (p *Printer) Forms() (forms []FormInfo, err error) {
 	var bytesNeeded, formsReturned uint32
@@ -410,6 +452,51 @@ func (p *Printer) Forms() (forms []FormInfo, err error) {
 		}
 		if form.pName != nil {
 			formInfo.Name = windows.UTF16PtrToString(form.pName)
+		}
+		forms = append(forms, formInfo)
+	}
+	return
+}
+
+// Forms2 returns information about all paper size forms on the print server
+func (p *Printer) Forms2() (forms []FormInfo2, err error) {
+	var bytesNeeded, formsReturned uint32
+	buf := make([]byte, 1)
+	for {
+		err = EnumForms(p.h, 2, &buf[0], uint32(len(buf)), &bytesNeeded, &formsReturned)
+		if err == nil {
+			break
+		}
+		if err != windows.ERROR_INSUFFICIENT_BUFFER {
+			return
+		}
+		if bytesNeeded <= uint32(len(buf)) {
+			return
+		}
+		buf = make([]byte, bytesNeeded)
+	}
+	if formsReturned <= 0 {
+		return
+	}
+	forms = make([]FormInfo2, 0, formsReturned)
+	formsInfo := (*[2048]FORM_INFO_2)(unsafe.Pointer(&buf[0]))[:formsReturned:formsReturned]
+	for _, form := range formsInfo {
+		formInfo := FormInfo2{
+			Flags:         form.Flags,
+			Size:          form.Size,
+			ImageableArea: form.ImageableArea,
+		}
+		if form.pName != nil {
+			formInfo.Name = windows.UTF16PtrToString(form.pName)
+		}
+		if form.pKeyword != nil {
+			formInfo.PKeyword = windows.UTF16PtrToString(form.pKeyword)
+		}
+		if form.pName != nil {
+			formInfo.PMuiDll = windows.UTF16PtrToString(form.pMuiDll)
+		}
+		if form.pName != nil {
+			formInfo.PDisplayName = windows.UTF16PtrToString(form.pDisplayName)
 		}
 		forms = append(forms, formInfo)
 	}
