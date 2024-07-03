@@ -30,6 +30,7 @@ var (
 	procAddFormW            = winspoolMod.NewProc("AddFormW")
 	procDeleteFormW         = winspoolMod.NewProc("DeleteFormW")
 	procEnumFormsW          = winspoolMod.NewProc("EnumFormsW")
+	procEnumPrinterDriversW = winspoolMod.NewProc("EnumPrinterDriversW")
 )
 
 func GetDefaultPrinter(buf *uint16, bufN *uint32) (err error) {
@@ -238,6 +239,18 @@ func DeleteForm(h syscall.Handle, pFormName *uint16) (err error) {
 
 func EnumForms(h syscall.Handle, level uint32, pForm *byte, cbBuf uint32, pcbNeeded *uint32, pcReturned *uint32) (err error) {
 	r1, _, e1 := syscall.SyscallN(procEnumFormsW.Addr(), uintptr(h), uintptr(level), uintptr(unsafe.Pointer(pForm)), uintptr(cbBuf), uintptr(unsafe.Pointer(pcbNeeded)), uintptr(unsafe.Pointer(pcReturned)))
+	if r1 == 0 {
+		if e1 != 0 {
+			err = error(e1)
+		} else {
+			err = syscall.EINVAL
+		}
+	}
+	return
+}
+
+func EnumPrinterDrivers(pName *uint16, env *uint16, level uint32, pDriverInfo *byte, cbBuf uint32, pcbNeeded *uint32, pcReturned *uint32) (err error) {
+	r1, _, e1 := syscall.SyscallN(procEnumPrinterDriversW.Addr(), uintptr(unsafe.Pointer(pName)), uintptr(unsafe.Pointer(env)), uintptr(level), uintptr(unsafe.Pointer(pDriverInfo)), uintptr(cbBuf), uintptr(unsafe.Pointer(pcbNeeded)), uintptr(unsafe.Pointer(pcReturned)))
 	if r1 == 0 {
 		if e1 != 0 {
 			err = error(e1)

@@ -641,6 +641,41 @@ func (p *Printer) DriverInfo() (*DriverInfo, error) {
 	}, nil
 }
 
+// EnumDriverInfo returns information about printer p driver.
+func (p *Printer) EnumDriverInfo() (drivers []DriverInfo, err error) {
+	var bytesNeeded, driversReturned uint32
+	b := make([]byte, 1024*10)
+	for {
+		err = EnumPrinterDrivers(nil, nil, 8, &b[0], uint32(len(b)), &bytesNeeded, &driversReturned)
+		if err == nil {
+			break
+		}
+		if err != windows.ERROR_INSUFFICIENT_BUFFER {
+			return
+		}
+		if bytesNeeded <= uint32(len(b)) {
+			return
+		}
+		b = make([]byte, bytesNeeded)
+	}
+	if driversReturned <= 0 {
+		return
+	}
+	drivers = make([]DriverInfo, 0, driversReturned)
+
+	driversInfo := (*[2048]DRIVER_INFO_8)(unsafe.Pointer(&b[0]))[:driversReturned:driversReturned]
+	for _, driver := range driversInfo {
+		driverInfo := DriverInfo{
+			Attributes:  driver.PrinterDriverAttributes,
+			Name:        windows.UTF16PtrToString(driver.Name),
+			DriverPath:  windows.UTF16PtrToString(driver.DriverPath),
+			Environment: windows.UTF16PtrToString(driver.Environment),
+		}
+		drivers = append(drivers, driverInfo)
+	}
+	return
+}
+
 // GetPrinter2 get Printer Info 2
 func (p *Printer) GetPrinter2() (printerInfo *PRINTER_INFO_2, err error) {
 	var needed uint32
